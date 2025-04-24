@@ -1,16 +1,16 @@
+-- Notification khi execute
+game.StarterGui:SetCore("SendNotification", {
+    Title = "Fly Movement",
+    Text = "By: Chiriku Roblox",
+    Duration = 5
+})
+
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local Char = Player.Character or Player.CharacterAdded:Wait()
 local HRP = Char:WaitForChild("HumanoidRootPart")
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
-
--- Send notification when script is executed
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Fly Movement",
-    Text = "By: Chiriku Roblox",
-    Duration = 5
-})
 
 -- UI Toggle Button
 local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
@@ -25,7 +25,6 @@ Button.Image = "rbxassetid://119198835819797"
 -- Variables
 local flying = false
 local speed = 120
-local control = {F = 0, B = 0, L = 0, R = 0, Y = 0}
 
 local bodyGyro = Instance.new("BodyGyro")
 bodyGyro.P = 9e4
@@ -46,11 +45,11 @@ local function Fly()
     RS:BindToRenderStep("FlyLoop", Enum.RenderPriority.Character.Value, function()
         if not flying then return end
         Char:FindFirstChildOfClass("Humanoid").PlatformStand = true
-        local cam = workspace.CurrentCamera
-        local move = Vector3.new(control.L + control.R, control.Y, control.F + control.B)
-        move = cam.CFrame:VectorToWorldSpace(move)
-        bodyVel.Velocity = move.Unit * speed
-        bodyGyro.CFrame = cam.CFrame
+        local moveDir = Player:GetMouse().Hit.Position - HRP.Position
+        moveDir = Vector3.new(moveDir.X, 0, moveDir.Z).Unit * speed
+        if moveDir.Magnitude ~= moveDir.Magnitude then moveDir = Vector3.zero end
+        bodyVel.Velocity = moveDir
+        bodyGyro.CFrame = workspace.CurrentCamera.CFrame
     end)
 end
 
@@ -72,30 +71,3 @@ end
 Button.MouseButton1Click:Connect(function()
     if flying then StopFly() else Fly() end
 end)
-
--- Key movement
-UIS.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    local k = input.KeyCode
-    if k == Enum.KeyCode.W then control.F = -1 end
-    if k == Enum.KeyCode.S then control.B = 1 end
-    if k == Enum.KeyCode.A then control.L = -1 end
-    if k == Enum.KeyCode.D then control.R = 1 end
-    if k == Enum.KeyCode.Space then control.Y = 1 end
-    if k == Enum.KeyCode.LeftShift then control.Y = -1 end
-end)
-
-UIS.InputEnded:Connect(function(input)
-    local k = input.KeyCode
-    if k == Enum.KeyCode.W then control.F = 0 end
-    if k == Enum.KeyCode.S then control.B = 0 end
-    if k == Enum.KeyCode.A then control.L = 0 end
-    if k == Enum.KeyCode.D then control.R = 0 end
-    if k == Enum.KeyCode.Space or k == Enum.KeyCode.LeftShift then control.Y = 0 end
-end)
-
--- Auto start on mobile
-if UIS.TouchEnabled and not UIS.KeyboardEnabled then
-    wait(1)
-    Fly()
-end
