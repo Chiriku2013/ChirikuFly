@@ -1,73 +1,67 @@
--- Notification khi execute
-game.StarterGui:SetCore("SendNotification", {
+local player = game.Players.LocalPlayer
+local mouse = player:GetMouse()
+local flying = false
+local speed = 350
+local bodyGyro, bodyVelocity
+
+-- Tạo UI với nút điều khiển trên mobile
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Tạo nút toggle cho bay
+local toggleButton = Instance.new("ImageButton")
+toggleButton.Size = UDim2.new(0, 100, 0, 100)
+toggleButton.Position = UDim2.new(0.9, -50, 0.9, -50)  -- Vị trí nút toggle
+toggleButton.BackgroundTransparency = 1
+toggleButton.Image = "rbxassetid://6031090507"  -- ID hình ảnh bật bay
+toggleButton.Parent = screenGui
+
+-- Gửi thông báo khi execute script lần đầu
+game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "Fly Movement",
     Text = "By: Chiriku Roblox",
     Duration = 5
 })
 
-local Players = game:GetService("Players")
-local Player = Players.LocalPlayer
-local Char = Player.Character or Player.CharacterAdded:Wait()
-local HRP = Char:WaitForChild("HumanoidRootPart")
-local UIS = game:GetService("UserInputService")
-local RS = game:GetService("RunService")
-
--- UI Toggle Button
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-ScreenGui.Name = "FlyToggleUI"
-
-local Button = Instance.new("ImageButton", ScreenGui)
-Button.Size = UDim2.new(0, 50, 0, 50)
-Button.Position = UDim2.new(0, 10, 0, 10)
-Button.BackgroundTransparency = 1
-Button.Image = "rbxassetid://119198835819797"
-
--- Variables
-local flying = false
-local speed = 120
-
-local bodyGyro = Instance.new("BodyGyro")
-bodyGyro.P = 9e4
-bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-
-local bodyVel = Instance.new("BodyVelocity")
-bodyVel.maxForce = Vector3.new(9e9, 9e9, 9e9)
-bodyVel.P = 1e4
-
--- Fly function
-local function Fly()
-    if flying then return end
+-- Chức năng bắt đầu bay
+local function startFlying()
     flying = true
-    bodyGyro.CFrame = HRP.CFrame
-    bodyGyro.Parent = HRP
-    bodyVel.Parent = HRP
+    bodyGyro = Instance.new("BodyGyro")
+    bodyVelocity = Instance.new("BodyVelocity")
+    
+    bodyGyro.MaxTorque = Vector3.new(400000, 400000, 400000)
+    bodyGyro.CFrame = player.Character.HumanoidRootPart.CFrame
+    bodyGyro.Parent = player.Character.HumanoidRootPart
 
-    RS:BindToRenderStep("FlyLoop", Enum.RenderPriority.Character.Value, function()
-        if not flying then return end
-        Char:FindFirstChildOfClass("Humanoid").PlatformStand = true
-        local moveDir = Player:GetMouse().Hit.Position - HRP.Position
-        moveDir = Vector3.new(moveDir.X, 0, moveDir.Z).Unit * speed
-        if moveDir.Magnitude ~= moveDir.Magnitude then moveDir = Vector3.zero end
-        bodyVel.Velocity = moveDir
-        bodyGyro.CFrame = workspace.CurrentCamera.CFrame
+    bodyVelocity.MaxForce = Vector3.new(400000, 400000, 400000)
+    bodyVelocity.Velocity = Vector3.new(0, speed, 0)
+    bodyVelocity.Parent = player.Character.HumanoidRootPart
+
+    -- Điều chỉnh hướng bay
+    local position = player.Character.HumanoidRootPart.Position
+    local targetPos = mouse.Hit.p
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if flying then
+            local direction = (targetPos - position).unit
+            bodyVelocity.Velocity = direction * speed
+        end
     end)
 end
 
-local function StopFly()
+-- Chức năng dừng bay
+local function stopFlying()
     flying = false
-    Char:FindFirstChildOfClass("Humanoid").PlatformStand = false
-    RS:UnbindFromRenderStep("FlyLoop")
-    bodyGyro:Destroy()
-    bodyVel:Destroy()
-    bodyGyro = Instance.new("BodyGyro")
-    bodyGyro.P = 9e4
-    bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-    bodyVel = Instance.new("BodyVelocity")
-    bodyVel.maxForce = Vector3.new(9e9, 9e9, 9e9)
-    bodyVel.P = 1e4
+    if bodyGyro then bodyGyro:Destroy() end
+    if bodyVelocity then bodyVelocity:Destroy() end
 end
 
--- Toggle button click
-Button.MouseButton1Click:Connect(function()
-    if flying then StopFly() else Fly() end
+-- Toggle bay khi nhấn vào ImageButton
+toggleButton.MouseButton1Click:Connect(function()
+    if flying then
+        stopFlying()
+        toggleButton.Image = "rbxassetid://6031090515"  -- ID hình ảnh tắt bay
+    else
+        startFlying()
+        toggleButton.Image = "rbxassetid://6031090507"  -- ID hình ảnh bật bay
+    end
 end)
