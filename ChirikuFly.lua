@@ -1,117 +1,99 @@
--- Gọi script kiểm tra key từ GitHub
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Chiriku2013/Getkey/refs/heads/main/Getkey.lua"))()
+-- Key System
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Chiriku2013/Getkey/refs/heads/main/Getkey.lua"))(function()
+    -- Nếu key đúng, chạy script fly movement bên dưới:
 
--- Sau khi kiểm tra key xong và key hợp lệ, tiếp tục phần code bay
-local correctKey = "ChirikuNigga" -- Đây là key đúng bạn muốn sử dụng
+    local Players = game:GetService("Players")
+    local Player = Players.LocalPlayer
+    local Char = Player.Character or Player.CharacterAdded:Wait()
+    local HRP = Char:WaitForChild("HumanoidRootPart")
+    local UIS = game:GetService("UserInputService")
+    local RS = game:GetService("RunService")
 
--- Kiểm tra key và gọi UI
-if getKeyResult == "correct_key" then
-    -- Key hợp lệ, tạo UI fly
-    local function createFlyUI()
-        local player = game.Players.LocalPlayer
-        local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-        gui.Name = "FlyUI"
-        gui.ResetOnSpawn = false
+    -- UI Toggle Button
+    local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+    ScreenGui.Name = "FlyToggleUI"
 
-        local frame = Instance.new("Frame", gui)
-        frame.Size = UDim2.new(0, 300, 0, 150)
-        frame.Position = UDim2.new(0.5, -150, 0.5, -75)
-        frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        frame.BorderSizePixel = 0
-        Instance.new("UICorner", frame)
+    local Button = Instance.new("ImageButton", ScreenGui)
+    Button.Size = UDim2.new(0, 50, 0, 50)
+    Button.Position = UDim2.new(0, 10, 0, 10)
+    Button.BackgroundTransparency = 1
+    Button.Image = "rbxassetid://119198835819797"
 
-        local title = Instance.new("TextLabel", frame)
-        title.Text = "FLY SYSTEM"
-        title.Size = UDim2.new(1, 0, 0, 30)
-        title.BackgroundTransparency = 1
-        title.TextColor3 = Color3.fromRGB(255, 255, 0)
-        title.Font = Enum.Font.SourceSansBold
-        title.TextSize = 24
-        title.Position = UDim2.new(0.5, 0, 0, 5)
-        title.AnchorPoint = Vector2.new(0.5, 0)
+    -- Variables
+    local flying = false
+    local speed = 120
+    local control = {F = 0, B = 0, L = 0, R = 0, Y = 0}
 
-        local flyButton = Instance.new("TextButton", frame)
-        flyButton.Text = "Toggle Fly"
-        flyButton.Size = UDim2.new(0, 200, 0, 50)
-        flyButton.Position = UDim2.new(0.5, -100, 0.5, -25)
-        flyButton.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
-        flyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        flyButton.Font = Enum.Font.SourceSansBold
-        flyButton.TextSize = 20
-        Instance.new("UICorner", flyButton)
+    local bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.P = 9e4
+    bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
 
-        -- Hover effect
-        flyButton.MouseEnter:Connect(function()
-            flyButton.BackgroundTransparency = 0.1
-        end)
-        flyButton.MouseLeave:Connect(function()
-            flyButton.BackgroundTransparency = 0
-        end)
+    local bodyVel = Instance.new("BodyVelocity")
+    bodyVel.maxForce = Vector3.new(9e9, 9e9, 9e9)
+    bodyVel.P = 1e4
 
-        -- Bật/tắt bay khi nhấn nút Fly
-        local flying = false
-        local bodyVelocity, bodyGyro
-        flyButton.MouseButton1Click:Connect(function()
-            if flying then
-                -- Tắt bay, hủy các đối tượng di chuyển
-                bodyVelocity:Destroy()
-                bodyGyro:Destroy()
-                flying = false
-            else
-                -- Bắt đầu bay, tạo các đối tượng điều khiển bay
-                local char = player.Character or player.CharacterAdded:Wait()
-                local humanoidRootPart = char:WaitForChild("HumanoidRootPart")
-                
-                -- Tạo BodyVelocity để điều khiển chuyển động bay
-                bodyVelocity = Instance.new("BodyVelocity")
-                bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
-                bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-                bodyVelocity.Parent = humanoidRootPart
+    -- Fly function
+    local function Fly()
+        if flying then return end
+        flying = true
+        bodyGyro.CFrame = HRP.CFrame
+        bodyGyro.Parent = HRP
+        bodyVel.Parent = HRP
 
-                -- Tạo BodyGyro để giữ thăng bằng trong không gian 3D
-                bodyGyro = Instance.new("BodyGyro")
-                bodyGyro.MaxTorque = Vector3.new(100000, 100000, 100000)
-                bodyGyro.CFrame = humanoidRootPart.CFrame
-                bodyGyro.Parent = humanoidRootPart
-
-                -- Cập nhật chuyển động bay dựa vào các phím WASD hoặc di chuyển chuột
-                game:GetService("RunService").RenderStepped:Connect(function(_, dt)
-                    if flying then
-                        local moveDirection = Vector3.new(0, 0, 0)
-
-                        -- Điều khiển bằng các phím WASD
-                        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
-                            moveDirection = moveDirection + humanoidRootPart.CFrame.LookVector
-                        end
-                        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
-                            moveDirection = moveDirection - humanoidRootPart.CFrame.LookVector
-                        end
-                        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
-                            moveDirection = moveDirection - humanoidRootPart.CFrame.RightVector
-                        end
-                        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
-                            moveDirection = moveDirection + humanoidRootPart.CFrame.RightVector
-                        end
-                        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then
-                            moveDirection = moveDirection + Vector3.new(0, 1, 0)
-                        end
-                        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftControl) then
-                            moveDirection = moveDirection - Vector3.new(0, 1, 0)
-                        end
-
-                        -- Áp dụng lực di chuyển
-                        bodyVelocity.Velocity = moveDirection * 50
-                        bodyGyro.CFrame = humanoidRootPart.CFrame
-                    end
-                end)
-                flying = true
-            end
+        RS:BindToRenderStep("FlyLoop", Enum.RenderPriority.Character.Value, function()
+            if not flying then return end
+            Char:FindFirstChildOfClass("Humanoid").PlatformStand = true
+            local cam = workspace.CurrentCamera
+            local move = Vector3.new(control.L + control.R, control.Y, control.F + control.B)
+            move = cam.CFrame:VectorToWorldSpace(move)
+            bodyVel.Velocity = move.Unit * speed
+            bodyGyro.CFrame = cam.CFrame
         end)
     end
 
-    -- Tạo UI Fly
-    createFlyUI()
-else
-    -- Nếu key sai, không làm gì
-    print("Key sai hoặc không hợp lệ")
-end
+    local function StopFly()
+        flying = false
+        Char:FindFirstChildOfClass("Humanoid").PlatformStand = false
+        RS:UnbindFromRenderStep("FlyLoop")
+        bodyGyro:Destroy()
+        bodyVel:Destroy()
+        bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.P = 9e4
+        bodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bodyVel = Instance.new("BodyVelocity")
+        bodyVel.maxForce = Vector3.new(9e9, 9e9, 9e9)
+        bodyVel.P = 1e4
+    end
+
+    -- Toggle button click
+    Button.MouseButton1Click:Connect(function()
+        if flying then StopFly() else Fly() end
+    end)
+
+    -- Key movement
+    UIS.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        local k = input.KeyCode
+        if k == Enum.KeyCode.W then control.F = -1 end
+        if k == Enum.KeyCode.S then control.B = 1 end
+        if k == Enum.KeyCode.A then control.L = -1 end
+        if k == Enum.KeyCode.D then control.R = 1 end
+        if k == Enum.KeyCode.Space then control.Y = 1 end
+        if k == Enum.KeyCode.LeftShift then control.Y = -1 end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        local k = input.KeyCode
+        if k == Enum.KeyCode.W then control.F = 0 end
+        if k == Enum.KeyCode.S then control.B = 0 end
+        if k == Enum.KeyCode.A then control.L = 0 end
+        if k == Enum.KeyCode.D then control.R = 0 end
+        if k == Enum.KeyCode.Space or k == Enum.KeyCode.LeftShift then control.Y = 0 end
+    end)
+
+    -- Auto start on mobile
+    if UIS.TouchEnabled and not UIS.KeyboardEnabled then
+        wait(1)
+        Fly()
+    end
+end)
